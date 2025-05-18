@@ -1,14 +1,11 @@
-import express, { Request, Response } from 'express';
+import { connectDB } from './database/mongo.connection';
+import app from './app';
 
-const app = express();
-const PORT = 3000;
+const PORT = process.env.PORT || 3000;
 
-app.use(express.json());
-
-app.get('/', (req: Request, res: Response) => {
-  res.send('¡Backend con Express y TypeScript en 2025!');
-});
-
-app.listen(PORT, () => {
-  console.log(`Servidor corriendo en http://localhost:${PORT}`);
+// Conectar a MongoDB antes de iniciar el servidor
+connectDB().then(() => {
+  app.listen(PORT, () => {
+    console.log(`🚀 Servidor corriendo en http://localhost:${PORT}`);
+  });
 });
