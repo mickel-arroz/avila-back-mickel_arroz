@@ -5,12 +5,13 @@ interface IUser extends Document {
   email: string;
   password: string;
   _id: Types.ObjectId;
-
+  role: "user" | "admin";
 }
 
 const userSchema = new Schema<IUser>({
   email: { type: String, required: true, unique: true, trim: true },
   password: { type: String, required: true, select: false },
+  role: { type: String, enum: ["user", "admin"], default: "user" },
 });
 
 // Middleware para hashear la contraseña antes de guardar

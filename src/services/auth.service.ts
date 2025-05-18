@@ -19,8 +19,15 @@ export class AuthService {
     const isMatch = await bcrypt.compare(password, user.password);
     if (!isMatch) throw new Error("Credenciales inválidas");
 
-    const token = generateToken(user._id.toString());
-    return { token, user: { id: user._id, email: user.email } };
+    const token = generateToken(user._id.toString(), user.role);
+    return {
+      token,
+      user: {
+        id: user._id,
+        email: user.email,
+        role: user.role,
+      },
+    };
   }
 
   static async getAllUsers() {
