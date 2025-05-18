@@ -9,12 +9,4 @@ const router = Router();
 router.post("/register", AuthController.register);
 router.post("/login", AuthController.login);
 
-// Ruta PRIVADA (solo admin)
-router.get(
-  "/users",
-  authenticateJWT,
-  //   authorizeRoles("admin"),
-  AuthController.getAllUsers
-);
-
 export default router;
