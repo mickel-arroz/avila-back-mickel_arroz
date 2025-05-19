@@ -6,6 +6,7 @@ import cookieParser from "cookie-parser";
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import productRoutes from "./routes/product.routes";
+import ordersRoutes from "./routes/order.routes";
 
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger/swagger";
@@ -22,6 +23,7 @@ app.get("/", (req, res) => {
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
 app.use("/api/products", productRoutes);
+app.use("/api/orders", ordersRoutes);
 
 app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 

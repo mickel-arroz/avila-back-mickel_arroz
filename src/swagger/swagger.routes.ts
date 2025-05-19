@@ -92,6 +92,7 @@
  *               type: string
  *               example: user
  *       description: El token JWT se envía en la cookie HTTP-only bajo la clave `token`
+ *
  *     Product:
  *       type: object
  *       properties:
@@ -152,4 +153,27 @@
  *       type: array
  *       items:
  *         $ref: '#/components/schemas/Product'
+ *
+ *     Order:
+ *       type: object
+ *       properties:
+ *         _id:
+ *           type: string
+ *         user:
+ *           type: string
+ *         items:
+ *           type: array
+ *           items:
+ *             type: object
+ *             properties:
+ *               product:
+ *                 type: string
+ *               quantity:
+ *                 type: integer
+ *         status:
+ *           type: string
+ *         createdAt:
+ *           type: string
+ *         updatedAt:
+ *           type: string
  */
