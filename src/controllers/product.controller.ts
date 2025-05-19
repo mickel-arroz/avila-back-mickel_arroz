@@ -53,12 +53,10 @@ export const ProductController = {
   },
 
   getProductsStock: async (req: Request, res: Response) => {
-    const page = req.query.page
-      ? parseInt(req.query.page as string, 10)
-      : undefined;
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
     const limit = req.query.limit
       ? parseInt(req.query.limit as string, 10)
-      : undefined;
+      : 10;
 
     try {
       const result = await ProductService.getProducts({ page, limit });

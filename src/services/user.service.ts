@@ -110,9 +110,26 @@ export class UserService {
     };
   }
 
-  static async getAllUsers() {
-    const users = await User.find().select("+password");
-    if (!users) throw new Error("No se encontraron usuarios");
-    return users;
+  static async getAllUsers({
+    page = 1,
+    limit = 10,
+  }: {
+    page: number;
+    limit: number;
+  }) {
+    const skip = (page - 1) * limit;
+
+    const [users, total] = await Promise.all([
+      User.find().skip(skip).limit(limit).select("-password"),
+      User.countDocuments(),
+    ]);
+
+    return {
+      page,
+      limit,
+      total,
+      totalPages: Math.ceil(total / limit),
+      users,
+    };
   }
 }

@@ -61,8 +61,29 @@ export const OrderService = {
     }
   },
 
-  getOrdersByUser: async (userId: string) => {
-    return await OrderModel.find({ user: userId }).populate("items.product");
+  getOrdersByUser: async (
+    userId: string,
+    page: number = 1,
+    limit: number = 10
+  ) => {
+    const skip = (page - 1) * limit;
+
+    const [orders, total] = await Promise.all([
+      OrderModel.find({ user: userId })
+        .populate("items.product")
+        .sort({ createdAt: -1 })
+        .skip(skip)
+        .limit(limit),
+      OrderModel.countDocuments({ user: userId }),
+    ]);
+
+    return {
+      success: true,
+      total,
+      page,
+      limit,
+      data: orders,
+    };
   },
 
   getOrderById: async (orderId: string, userId: string) => {

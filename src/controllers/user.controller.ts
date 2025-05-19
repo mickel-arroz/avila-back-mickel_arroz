@@ -10,9 +10,14 @@ const ChangePasswordSchema = z.object({
 
 export const UserController = {
   getAllUsers: async (req: Request, res: Response) => {
+    const page = req.query.page ? parseInt(req.query.page as string, 10) : 1;
+    const limit = req.query.limit
+      ? parseInt(req.query.limit as string, 10)
+      : 10;
+
     try {
-      const users = await UserService.getAllUsers();
-      res.status(200).json(users);
+      const result = await UserService.getAllUsers({ page, limit });
+      res.status(200).json(result);
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({

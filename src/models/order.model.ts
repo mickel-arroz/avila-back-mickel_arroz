@@ -23,15 +23,23 @@ const OrderItemSchema = new Schema<IOrderItem>(
 
 const OrderSchema = new Schema<IOrder>(
   {
-    user: { type: Schema.Types.ObjectId, ref: "User", required: true },
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: "User",
+      required: true,
+      index: true,
+    },
     items: { type: [OrderItemSchema], required: true },
     status: {
       type: String,
       enum: ["pendiente", "procesado", "enviado", "entregado", "cancelado"],
       default: "pendiente",
+      index: true,
     },
   },
   { timestamps: true }
 );
+
+OrderSchema.index({ createdAt: -1 });
 
 export const OrderModel = mongoose.model<IOrder>("Order", OrderSchema);

@@ -76,6 +76,19 @@ router.post("/", authenticateJWT, OrderController.createOrder);
  *     tags: [Pedidos]
  *     security:
  *       - apiAuth: []
+ *     parameters:
+ *       - in: query
+ *         name: page
+ *         schema:
+ *           type: integer
+ *           default: 1
+ *         description: Página de resultados (por defecto 1)
+ *       - in: query
+ *         name: limit
+ *         schema:
+ *           type: integer
+ *           default: 10
+ *         description: Número de pedidos por página (por defecto 10)
  *     responses:
  *       200:
  *         description: Historial de pedidos
@@ -165,10 +178,13 @@ router.get("/:id", authenticateJWT, OrderController.getOrderById);
  *         application/json:
  *           schema:
  *             type: object
+ *             required: [status]
  *             properties:
  *               status:
  *                 type: string
- *                 example: cancelled
+ *                 enum: [pendiente, procesado, enviado, entregado, cancelado]
+ *                 example: procesado
+ *                 description: "Nuevo estado de la orden. Valores permitidos: pendiente, procesado, enviado, entregado, cancelado."
  *     responses:
  *       200:
  *         description: Estado actualizado correctamente
@@ -177,11 +193,29 @@ router.get("/:id", authenticateJWT, OrderController.getOrderById);
  *             schema:
  *               $ref: '#/components/schemas/Order'
  *       400:
- *         $ref: '#/components/responses/ValidationError'
+ *         description: Estado inválido o error de validación
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
+ *       401:
+ *         description: Token no proporcionado o inválido
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       404:
- *         $ref: '#/components/responses/NotFound'
+ *         description: Orden no encontrada
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  *       500:
- *         $ref: '#/components/responses/ServerError'
+ *         description: Error interno del servidor
+ *         content:
+ *           application/json:
+ *             schema:
+ *               $ref: '#/components/schemas/ErrorResponse'
  */
 router.patch("/:id/status", authenticateJWT, OrderController.updateOrderStatus);
 

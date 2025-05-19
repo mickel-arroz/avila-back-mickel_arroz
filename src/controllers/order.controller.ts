@@ -44,16 +44,18 @@ export const OrderController = {
   getMyOrders: async (req: Request, res: Response) => {
     try {
       const userId = req.user?.id;
-      const orders = await OrderService.getOrdersByUser(userId);
-      res.status(200).json(orders);
-      return;
+      const page = parseInt(req.query.page as string) || 1;
+      const limit = parseInt(req.query.limit as string) || 10;
+
+      const result = await OrderService.getOrdersByUser(userId, page, limit);
+
+      res.status(200).json(result);
     } catch (err: any) {
       res.status(500).json({
         errorType: "SERVER_ERROR",
         message: "Error al obtener historial de pedidos",
         details: err.message,
       });
-      return;
     }
   },
 

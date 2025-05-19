@@ -62,12 +62,14 @@ const router = Router();
  *         name: page
  *         schema:
  *           type: integer
- *         description: Página de resultados
+ *           default: 1
+ *         description: Página de resultados (por defecto 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Número de productos por página
+ *           default: 10
+ *         description: Número de productos por página (por defecto 10)
  *     responses:
  *       200:
  *         description: Lista de productos
@@ -116,12 +118,14 @@ router.get(
  *         name: page
  *         schema:
  *           type: integer
- *         description: Página de resultados
+ *           default: 1
+ *         description: Página de resultados (por defecto 1)
  *       - in: query
  *         name: limit
  *         schema:
  *           type: integer
- *         description: Número de productos por página
+ *           default: 10
+ *         description: Número de productos por página (por defecto 10)
  *     responses:
  *       200:
  *         description: Lista de productos
