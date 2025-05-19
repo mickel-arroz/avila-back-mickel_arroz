@@ -5,6 +5,10 @@ import cookieParser from "cookie-parser";
 
 import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
+import productRoutes from "./routes/product.routes";
+
+import swaggerUi from "swagger-ui-express";
+import swaggerSpec from "./swagger/swagger";
 
 const app = express();
 app.use(express.json());
@@ -17,6 +21,9 @@ app.get("/", (req, res) => {
 
 app.use("/api/auth", authRoutes);
 app.use("/api/user", userRoutes);
+app.use("/api/products", productRoutes);
+
+app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 
 app.use((req, res, next) => {
   res.status(404).json({ error: "Ruta no encontrada" });

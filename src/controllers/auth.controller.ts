@@ -38,7 +38,7 @@ export const AuthController = {
         sameSite: "strict",
         maxAge: 3600000,
       });
-      res.status(200).json({ user: result.user });
+      res.status(200).json({ user: result.user, token: result.token });
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({
