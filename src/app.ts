@@ -27,7 +27,23 @@ app.use("/api/", apiLimiter);
 app.use(compression());
 
 app.get("/", (req, res) => {
-  res.send("Home de la API REST de comercio electronico escalable");
+  res.send(`
+    <!DOCTYPE html>
+    <html>
+    <head>
+        <title>API REST</title>
+        <style>
+            body { font-family: Arial; margin: 40px; }
+            h1 { color: #333; }
+        </style>
+    </head>
+    <body>
+        <h1>Home de la API REST de comercio electrónico escalable</h1>
+        <p>Bienvenido a nuestra API</p>
+        <strong><a href="/api/docs">Ir a la Documentacion de la API (Swagger UI)</a><strong>
+    </body>
+    </html>
+  `);
 });
 
 app.use("/api/auth", authRoutes);

@@ -17,6 +17,7 @@
     <li>Validaciones estrictas con Zod y control de errores estructurado</li>
     <li>Documentación interactiva con Swagger UI</li>
     <li>Compresión HTTP para respuestas más rápidas</li>
+    <li>Pruebas unitarias con Jest y ts-jest para servicios y lógica crítica</li>
   </ul>
 
   <h2>🧩 Tecnologías Utilizadas</h2>
@@ -26,7 +27,8 @@
     <li><strong>Autenticación:</strong> JWT + Bcrypt.js</li>
     <li><strong>Documentación:</strong> Swagger</li>
     <li><strong>Validación:</strong> Zod</li>
-    <li><strong>Optimización:</strong> Middleware de compresión HTTP (compression)</li>
+    <li><strong>Optimización:</strong> Compresión HTTP + Paginación</li>
+    <li><strong>Pruebas:</strong> Jest + ts-jest (con cobertura de servicios)</li>
     <li><strong>Herramientas:</strong> TypeScript, Nodemon, Dotenv</li>
   </ul>
 
@@ -39,7 +41,7 @@ npm install</code></pre>
   <p>Crea un archivo <code>.env</code> con las siguientes variables:</p>
   <pre><code>PORT=3000
 JWT_SECRET=your_jwt_secret
-MONGO_URI=mongodb+srv://user:password@cluster0.mlvkern.mongodb.net/nombre_base_datos?retryWrites=true&w=majority&appName=Cluster0
+MONGO_URI=mongodb+srv://user:password@cluster0.mlvkern.mongodb.net/nombre_DB?retryWrites=true&w=majority&appName=Cluster0
 NODE_ENV=development</code></pre>
   <p><strong>Nota:</strong> Reemplaza <code>user</code>, <code>password</code> y <code>nombre_base_datos</code> por tus credenciales reales.</p>
   <p><em>¡Nunca subas tu archivo <code>.env</code> a repositorios públicos! Inclúyelo en tu <code>.gitignore</code>.</em></p>
@@ -47,8 +49,10 @@ NODE_ENV=development</code></pre>
   <pre><code>node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"</code></pre>
 
   <h3>▶️ Ejecución</h3>
-  <pre><code>npm run dev    # Modo desarrollo con Nodemon
-npm run build && npm start   # Modo producción</code></pre>
+  <pre><code>npm run dev         # Modo desarrollo con Nodemon
+npm run build       # Compila a producción
+npm start           # Ejecuta la versión compilada
+npm test            # Ejecuta pruebas unitarias con Jest</code></pre>
 
   <h2>📚 Documentación API</h2>
   <p>La documentación interactiva está disponible en:</p>
@@ -58,11 +62,14 @@ npm run build && npm start   # Modo producción</code></pre>
   <h2>📦 Dependencias</h2>
   <h3>Producción</h3>
   <ul>
-    <li>express, mongoose, jsonwebtoken, bcryptjs, zod, swagger-jsdoc, swagger-ui-express, compression</li>
+    <li>express, mongoose, jsonwebtoken, bcryptjs, zod</li>
+    <li>swagger-jsdoc, swagger-ui-express</li>
+    <li>compression, cookie-parser, cors, dotenv</li>
   </ul>
   <h3>Desarrollo</h3>
   <ul>
-    <li>typescript, nodemon, ts-node, @types/* (tipado para librerías)</li>
+    <li>typescript, ts-node, nodemon</li>
+    <li>jest, ts-jest, @types/* (tipado para librerías)</li>
   </ul>
 
   <h2>⚙️ Scripts Disponibles</h2>
@@ -70,17 +77,19 @@ npm run build && npm start   # Modo producción</code></pre>
     <li><code>npm run dev</code> - Inicia el servidor en modo desarrollo con recarga automática</li>
     <li><code>npm run build</code> - Compila TypeScript a JavaScript</li>
     <li><code>npm start</code> - Ejecuta la versión compilada en producción</li>
+    <li><code>npm test</code> - Ejecuta todas las pruebas unitarias</li>
   </ul>
 
   <h2>🔍 Elecciones de Diseño y Buenas Prácticas</h2>
   <ul>
     <li><strong>MongoDB con Mongoose:</strong> Flexibilidad para datos semi-estructurados, soporta transacciones para garantizar la integridad de stock y pedidos.</li>
-    <li><strong>Transacciones MongoDB:</strong> Se usan para asegurar que la creación de pedidos y actualización de stock sean atómicas, evitando inconsistencias.</li>
     <li><strong>Zod:</strong> Validación estricta de datos de entrada para evitar datos inválidos en la API.</li>
     <li><strong>JWT:</strong> Autenticación stateless con roles y permisos.</li>
-    <li><strong>Compresión HTTP:</strong> Uso de middleware <code>compression</code> para mejorar tiempos de respuesta.</li>
+    <li><strong>Compresión HTTP:</strong> Middleware <code>compression</code> para mejorar tiempos de respuesta.</li>
+    <li><strong>Swagger:</strong> Documentación clara y mantenible directamente desde el código.</li>
     <li><strong>Manejo de errores estructurado:</strong> Respuestas claras y consistentes con código, mensaje y detalles.</li>
-    <li><strong>Paginación:</strong> Implementada en endpoints para optimizar consultas sobre grandes colecciones.</li>
+    <li><strong>Paginación:</strong> En endpoints de colección para rendimiento óptimo.</li>
+    <li><strong>Pruebas unitarias:</strong> Servicios y lógica crítica testeada con Jest y mocks de modelos.</li>
   </ul>
 
   <h2>🛡️ Coherencia e Integridad de Datos</h2>
@@ -90,7 +99,7 @@ npm run build && npm start   # Modo producción</code></pre>
     <li>Validación previa del stock disponible antes de aceptar pedidos.</li>
     <li>Devolución automática de stock si un pedido se cancela.</li>
     <li>Control estricto de estados válidos para pedidos.</li>
-    <li>Validación y manejo robusto de errores para evitar estados inconsistentes.</li>
+    <li>Validación robusta de entradas y manejo centralizado de errores.</li>
   </ul>
 
   <h2>🔐 Manejo de Errores</h2>
@@ -102,7 +111,15 @@ npm run build && npm start   # Modo producción</code></pre>
     "details": "Información adicional opcional"
   }
 }</code></pre>
-  <p>Ejemplos de escenarios manejados: usuario o producto no encontrado, stock insuficiente, validaciones de roles, contraseñas, estados inválidos, etc.</p>
+  <p>Escenarios manejados: usuario o producto no encontrado, stock insuficiente, validaciones de roles, contraseñas débiles, estados inválidos, etc.</p>
+
+  <h2>🧪 Pruebas Unitarias</h2>
+  <p>Los servicios y lógica crítica están cubiertos con Jest y ts-jest:</p>
+  <ul>
+    <li>Se usan mocks de Mongoose para aislar la lógica de base de datos</li>
+    <li>Se testea la lógica de negocio, validaciones y manejo de errores</li>
+    <li>Las pruebas se ejecutan con <code>npm test</code></li>
+  </ul>
 
   <h2>📄 Licencia</h2>
   <p>ISC License</p>
