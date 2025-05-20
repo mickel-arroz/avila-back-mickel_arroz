@@ -4,7 +4,7 @@ import { generateToken } from "../utils/jwt.utils";
 
 export class AuthService {
   static async register(email: string, password: string) {
-    const existingUser = await User.findOne({ email });
+    const existingUser = await User.findOne({ email }).lean();
     if (existingUser) throw new Error("El usuario ya existe");
 
     const user = new User({ email, password });
@@ -31,8 +31,8 @@ export class AuthService {
   }
 
   static async getAllUsers() {
-    const users = await User.find().select("+password");
-    if (!users) throw new Error("No se encontraron usuarios");
+    const users = await User.find().select("email role createdAt").lean();
+    if (users.length === 0) throw new Error("No se encontraron usuarios");
     return users;
   }
 }

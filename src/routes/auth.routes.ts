@@ -1,5 +1,6 @@
 import { Router } from "express";
 import { AuthController } from "../controllers/auth.controller";
+import { apiLimiter, loginLimiter } from "../middlewares/rateLimiter";
 
 const router = Router();
 
@@ -84,6 +85,6 @@ router.post("/register", AuthController.register);
  *             schema:
  *               $ref: '#/components/schemas/ErrorResponse'
  */
-router.post("/login", AuthController.login);
+router.post("/login", loginLimiter, AuthController.login);
 
 export default router;

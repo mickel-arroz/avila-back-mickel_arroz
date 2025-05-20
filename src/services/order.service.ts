@@ -1,7 +1,6 @@
 import { OrderModel } from "../models/order.model";
 import { Product } from "../models/product.model";
 import mongoose from "mongoose";
-
 import { OrderStatus } from "../types/order-status";
 
 const validStatuses: OrderStatus[] = [
@@ -40,7 +39,7 @@ export const OrderService = {
         });
       }
 
-      const newOrder = await OrderModel.create(
+      const [newOrder] = await OrderModel.create(
         [
           {
             user: userId,
@@ -52,7 +51,7 @@ export const OrderService = {
       );
 
       await session.commitTransaction();
-      return newOrder[0];
+      return newOrder;
     } catch (err) {
       await session.abortTransaction();
       throw err;
@@ -73,7 +72,8 @@ export const OrderService = {
         .populate("items.product")
         .sort({ createdAt: -1 })
         .skip(skip)
-        .limit(limit),
+        .limit(limit)
+        .lean(),
       OrderModel.countDocuments({ user: userId }),
     ]);
 
@@ -98,7 +98,9 @@ export const OrderService = {
       );
     }
 
-    const order = await OrderModel.findById(orderId).populate("items.product");
+    const order = await OrderModel.findById(orderId)
+      .populate("items.product")
+      .lean();
 
     if (!order) {
       throw new Error(
@@ -139,15 +141,15 @@ export const OrderService = {
       throw new Error("ORDER_ALREADY_CANCELLED");
     }
 
-    // si se cancela, devolvemos el stock
     if (newStatus === "cancelado") {
-      for (const item of order.items) {
-        const product = await Product.findById(item.product);
-        if (product) {
-          product.stock += item.quantity;
-          await product.save();
-        }
-      }
+      const updates = order.items.map((item) => ({
+        updateOne: {
+          filter: { _id: item.product._id },
+          update: { $inc: { stock: item.quantity } },
+        },
+      }));
+
+      await Product.bulkWrite(updates);
     }
 
     order.status = newStatus as OrderStatus;

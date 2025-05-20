@@ -6,7 +6,9 @@ export class UserService {
     const user = await User.findOneAndUpdate({ email }, updateData, {
       new: true,
       runValidators: true,
-    }).select("-password");
+    })
+      .select("-password")
+      .lean();
 
     if (!user) throw new Error("Usuario no encontrado");
     return user;
@@ -25,6 +27,7 @@ export class UserService {
         })
       );
     }
+
     const user = await User.findOneAndUpdate(
       { email },
       { role: newRole },
@@ -32,7 +35,9 @@ export class UserService {
         new: true,
         runValidators: true,
       }
-    ).select("-password");
+    )
+      .select("-password")
+      .lean();
 
     if (!user) {
       throw new Error(
@@ -91,7 +96,7 @@ export class UserService {
       );
     }
 
-    const deletedUser = await User.findOneAndDelete({ email });
+    const deletedUser = await User.findOneAndDelete({ email }).lean();
 
     if (!deletedUser) {
       throw new Error(
@@ -120,8 +125,8 @@ export class UserService {
     const skip = (page - 1) * limit;
 
     const [users, total] = await Promise.all([
-      User.find().skip(skip).limit(limit).select("-password"),
-      User.countDocuments(),
+      User.find().skip(skip).limit(limit).select("email role createdAt").lean(),
+      User.estimatedDocumentCount(),
     ]);
 
     return {

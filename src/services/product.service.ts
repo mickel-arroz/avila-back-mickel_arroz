@@ -30,7 +30,8 @@ export class ProductService {
       Product.find({ stock: { $gt: 0 } })
         .skip(skip)
         .limit(limit)
-        .sort({ createdAt: -1 }),
+        .sort({ createdAt: -1 })
+        .lean(),
       Product.countDocuments({ stock: { $gt: 0 } }),
     ]);
 
@@ -48,8 +49,8 @@ export class ProductService {
     const skip = (page - 1) * limit;
 
     const [items, total] = await Promise.all([
-      Product.find().skip(skip).limit(limit).sort({ createdAt: -1 }),
-      Product.countDocuments({ stock: { $gt: 0 } }),
+      Product.find().skip(skip).limit(limit).sort({ createdAt: -1 }).lean(),
+      Product.estimatedDocumentCount(),
     ]);
 
     return { items, total, page, limit };
@@ -58,7 +59,7 @@ export class ProductService {
   static async getProduct(id: string): Promise<{
     item: IProduct;
   }> {
-    const product = await Product.findById(id);
+    const product = await Product.findById(id).lean();
 
     if (!product) {
       throw new Error(
@@ -69,6 +70,7 @@ export class ProductService {
         })
       );
     }
+
     return { item: product };
   }
 
@@ -79,7 +81,8 @@ export class ProductService {
     const product = await Product.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true,
-    });
+    }).lean();
+
     if (!product) {
       throw new Error(
         JSON.stringify({
@@ -93,7 +96,7 @@ export class ProductService {
   }
 
   static async deleteProduct(id: string): Promise<{ id: string }> {
-    const result = await Product.findByIdAndDelete(id);
+    const result = await Product.findByIdAndDelete(id).lean();
     if (!result) {
       throw new Error(
         JSON.stringify({
