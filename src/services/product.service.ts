@@ -1,4 +1,5 @@
 import { Product, IProduct } from "../models/product.model";
+import { ApiError } from "../utils/apiError";
 
 interface PaginationOptions {
   page?: number;
@@ -16,12 +17,7 @@ export class ProductService {
     return await product.save();
   }
 
-  static async getProducts(options: PaginationOptions): Promise<{
-    items: IProduct[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  static async getProducts(options: PaginationOptions) {
     const page = options.page && options.page > 0 ? options.page : 1;
     const limit = options.limit && options.limit > 0 ? options.limit : 10;
     const skip = (page - 1) * limit;
@@ -38,12 +34,7 @@ export class ProductService {
     return { items, total, page, limit };
   }
 
-  static async getProductsAll(options: PaginationOptions): Promise<{
-    items: IProduct[];
-    total: number;
-    page: number;
-    limit: number;
-  }> {
+  static async getProductsAll(options: PaginationOptions) {
     const page = options.page && options.page > 0 ? options.page : 1;
     const limit = options.limit && options.limit > 0 ? options.limit : 10;
     const skip = (page - 1) * limit;
@@ -56,19 +47,13 @@ export class ProductService {
     return { items, total, page, limit };
   }
 
-  static async getProduct(id: string): Promise<{
-    item: IProduct;
-  }> {
+  static async getProduct(id: string) {
     const product = await Product.findById(id).lean();
 
     if (!product) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "PRODUCT_NOT_FOUND",
-          message: "Producto no encontrado",
-          details: { id },
-        })
-      );
+      throw new ApiError(404, "Producto no encontrado", "PRODUCT_NOT_FOUND", {
+        id,
+      });
     }
 
     return { item: product };
@@ -77,35 +62,30 @@ export class ProductService {
   static async updateProduct(
     id: string,
     data: Partial<Pick<IProduct, "name" | "description" | "price" | "stock">>
-  ): Promise<IProduct> {
+  ) {
     const product = await Product.findByIdAndUpdate(id, data, {
       new: true,
       runValidators: true,
     }).lean();
 
     if (!product) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "PRODUCT_NOT_FOUND",
-          message: "Producto no encontrado",
-          details: { id },
-        })
-      );
+      throw new ApiError(404, "Producto no encontrado", "PRODUCT_NOT_FOUND", {
+        id,
+      });
     }
+
     return product;
   }
 
-  static async deleteProduct(id: string): Promise<{ id: string }> {
+  static async deleteProduct(id: string) {
     const result = await Product.findByIdAndDelete(id).lean();
+
     if (!result) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "PRODUCT_NOT_FOUND",
-          message: "Producto no encontrado",
-          details: { id },
-        })
-      );
+      throw new ApiError(404, "Producto no encontrado", "PRODUCT_NOT_FOUND", {
+        id,
+      });
     }
+
     return { id: result._id.toString() };
   }
 }

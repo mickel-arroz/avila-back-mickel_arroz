@@ -2,6 +2,7 @@ import { OrderModel } from "../models/order.model";
 import { Product } from "../models/product.model";
 import mongoose from "mongoose";
 import { OrderStatus } from "../types/order-status";
+import { ApiError } from "../utils/apiError";
 
 const validStatuses: OrderStatus[] = [
   "pendiente",
@@ -24,9 +25,18 @@ export const OrderService = {
 
       for (const item of items) {
         const product = await Product.findById(item.product).session(session);
-        if (!product || product.stock < item.quantity) {
-          throw new Error(
-            `Producto no disponible o stock insuficiente: ${item.product}`
+        if (!product) {
+          throw new ApiError(
+            404,
+            `Producto no encontrado: ${item.product}`,
+            "PRODUCT_NOT_FOUND"
+          );
+        }
+        if (product.stock < item.quantity) {
+          throw new ApiError(
+            400,
+            `Stock insuficiente para producto: ${item.product}`,
+            "INSUFFICIENT_STOCK"
           );
         }
 
@@ -54,7 +64,13 @@ export const OrderService = {
       return newOrder;
     } catch (err) {
       await session.abortTransaction();
-      throw err;
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(
+        500,
+        "Error interno al crear el pedido",
+        "SERVER_ERROR",
+        err
+      );
     } finally {
       session.endSession();
     }
@@ -65,36 +81,48 @@ export const OrderService = {
     page: number = 1,
     limit: number = 10
   ) => {
-    const skip = (page - 1) * limit;
+    try {
+      const skip = (page - 1) * limit;
 
-    const [orders, total] = await Promise.all([
-      OrderModel.find({ user: userId })
-        .populate("items.product")
-        .sort({ createdAt: -1 })
-        .skip(skip)
-        .limit(limit)
-        .lean(),
-      OrderModel.countDocuments({ user: userId }),
-    ]);
+      const [orders, total] = await Promise.all([
+        OrderModel.find({ user: userId })
+          .populate("items.product")
+          .sort({ createdAt: -1 })
+          .skip(skip)
+          .limit(limit)
+          .lean(),
+        OrderModel.countDocuments({ user: userId }),
+      ]);
 
-    return {
-      success: true,
-      total,
-      page,
-      limit,
-      data: orders,
-    };
+      if (orders.length === 0) {
+        throw new ApiError(404, "No se encontraron pedidos", "NO_ORDERS_FOUND");
+      }
+
+      return {
+        success: true,
+        total,
+        page,
+        limit,
+        data: orders,
+      };
+    } catch (err) {
+      if (err instanceof ApiError) throw err;
+      throw new ApiError(
+        500,
+        "Error interno al obtener pedidos",
+        "SERVER_ERROR",
+        err
+      );
+    }
   },
 
   getOrderById: async (orderId: string, userId: string) => {
     if (!mongoose.Types.ObjectId.isValid(orderId)) {
-      throw new Error(
-        JSON.stringify({
-          statusCode: 400,
-          errorType: "INVALID_ORDER_ID",
-          message: "El ID del pedido no es válido",
-          details: { orderId },
-        })
+      throw new ApiError(
+        400,
+        "El ID del pedido no es válido",
+        "INVALID_ORDER_ID",
+        { orderId }
       );
     }
 
@@ -103,25 +131,16 @@ export const OrderService = {
       .lean();
 
     if (!order) {
-      throw new Error(
-        JSON.stringify({
-          statusCode: 404,
-          errorType: "ORDER_NOT_FOUND",
-          message: "Pedido no encontrado",
-          details: { orderId },
-        })
-      );
+      throw new ApiError(404, "Pedido no encontrado", "ORDER_NOT_FOUND", {
+        orderId,
+      });
     }
 
     if (order.user.toString() !== userId) {
-      throw new Error(
-        JSON.stringify({
-          statusCode: 403,
-          errorType: "FORBIDDEN",
-          message: "No tienes acceso a este pedido",
-          details: { orderId, userId },
-        })
-      );
+      throw new ApiError(403, "No tienes acceso a este pedido", "FORBIDDEN", {
+        orderId,
+        userId,
+      });
     }
 
     return order;
@@ -129,16 +148,25 @@ export const OrderService = {
 
   updateOrderStatus: async (orderId: string, newStatus: string) => {
     if (!validStatuses.includes(newStatus as OrderStatus)) {
-      throw new Error("INVALID_STATUS");
+      throw new ApiError(400, "Estado de orden no válido", "INVALID_STATUS", {
+        received: newStatus,
+      });
     }
 
     const order = await OrderModel.findById(orderId).populate("items.product");
     if (!order) {
-      throw new Error("ORDER_NOT_FOUND");
+      throw new ApiError(404, "Orden no encontrada", "ORDER_NOT_FOUND", {
+        orderId,
+      });
     }
 
     if (order.status === "cancelado") {
-      throw new Error("ORDER_ALREADY_CANCELLED");
+      throw new ApiError(
+        400,
+        "La orden ya fue cancelada",
+        "ORDER_ALREADY_CANCELLED",
+        { orderId }
+      );
     }
 
     if (newStatus === "cancelado") {

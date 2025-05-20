@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { formatZodError } from "../utils/error.utils";
 import { ProductService } from "../services/product.service";
+import { ApiError } from "../utils/apiError";
 
 const CreateProductSchema = z.object({
   name: z.string().min(1),
@@ -37,10 +38,12 @@ export const ProductController = {
       const product = await ProductService.createProduct(parse.data);
       res.status(201).json(product);
     } catch (err: any) {
-      if (err.name === "UnauthorizedError") {
-        res
-          .status(401)
-          .json({ errorType: "UNAUTHORIZED", message: "No autenticado" });
+      if (err instanceof ApiError) {
+        res.status(err.statusCode).json({
+          errorType: err.errorType,
+          message: err.message,
+          details: err.details,
+        });
         return;
       }
 
@@ -94,23 +97,22 @@ export const ProductController = {
     try {
       const { id } = req.params;
       const result = await ProductService.getProduct(id);
-
-      if (!result) {
-        res.status(404).json({
-          errorType: "NOT_FOUND",
-          message: "Producto no encontrado",
+      res.status(200).json(result);
+    } catch (err: any) {
+      if (err instanceof ApiError) {
+        res.status(err.statusCode).json({
+          errorType: err.errorType,
+          message: err.message,
+          details: err.details,
         });
         return;
       }
 
-      res.status(200).json(result);
-    } catch (err: any) {
       res.status(500).json({
         errorType: "SERVER_ERROR",
         message: "Error al obtener producto",
         details: err.message,
       });
-      return;
     }
   },
 
@@ -130,47 +132,45 @@ export const ProductController = {
     try {
       const updated = await ProductService.updateProduct(id, parse.data);
       res.status(200).json(updated);
-      return;
     } catch (err: any) {
-      let payload;
-      try {
-        payload = JSON.parse(err.message);
-      } catch {
-        res.status(500).json({
-          errorType: "SERVER_ERROR",
-          message: "Error al actualizar producto",
-          details: err.message,
+      if (err instanceof ApiError) {
+        res.status(err.statusCode).json({
+          errorType: err.errorType,
+          message: err.message,
+          details: err.details,
         });
         return;
       }
 
-      const code = payload.errorType === "PRODUCT_NOT_FOUND" ? 404 : 400;
-      res.status(code).json(payload);
-      return;
+      res.status(500).json({
+        errorType: "SERVER_ERROR",
+        message: "Error al actualizar producto",
+        details: err.message,
+      });
     }
   },
 
   deleteProduct: async (req: Request, res: Response) => {
     const { id } = req.params;
+
     try {
       const result = await ProductService.deleteProduct(id);
       res.status(200).json(result);
     } catch (err: any) {
-      let payload;
-      try {
-        payload = JSON.parse(err.message);
-      } catch {
-        res.status(500).json({
-          errorType: "SERVER_ERROR",
-          message: "Error al eliminar producto",
-          details: err.message,
+      if (err instanceof ApiError) {
+        res.status(err.statusCode).json({
+          errorType: err.errorType,
+          message: err.message,
+          details: err.details,
         });
         return;
       }
 
-      const code = payload.errorType === "PRODUCT_NOT_FOUND" ? 404 : 400;
-      res.status(code).json(payload);
-      return;
+      res.status(500).json({
+        errorType: "SERVER_ERROR",
+        message: "Error al eliminar producto",
+        details: err.message,
+      });
     }
   },
 };

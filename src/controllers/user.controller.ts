@@ -2,6 +2,7 @@ import { Request, Response } from "express";
 import { z } from "zod";
 import { formatZodError } from "../utils/error.utils";
 import { UserService } from "../services/user.service";
+import { ApiError } from "../utils/apiError";
 
 const ChangePasswordSchema = z.object({
   email: z.string().email(),
@@ -21,14 +22,27 @@ export const UserController = {
     } catch (error) {
       if (error instanceof z.ZodError) {
         res.status(400).json({
-          error: "Validation failed",
+          errorType: "VALIDATION_ERROR",
+          message: "Validación fallida",
           details: formatZodError(error),
         });
-      } else if (error instanceof Error) {
-        res.status(400).json({ error: error.message });
-      } else {
-        res.status(500).json({ error: "Unknown error" });
+        return;
       }
+
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          errorType: error.errorType,
+          message: error.message,
+          details: error.details,
+        });
+        return;
+      }
+
+      res.status(500).json({
+        errorType: "SERVER_ERROR",
+        message: "Error al obtener usuarios",
+        details: (error as Error).message,
+      });
     }
   },
 
@@ -38,16 +52,15 @@ export const UserController = {
       const updateData = req.body;
 
       if (!email || typeof email !== "string") {
-        res.status(400).json({
-          errorType: "VALIDATION_ERROR",
-          message:
-            "El parámetro email es requerido y debe ser una cadena de texto",
-          details: {
+        throw new ApiError(
+          400,
+          "El parámetro email es requerido y debe ser una cadena de texto",
+          "VALIDATION_ERROR",
+          {
             received: email,
             expected: "string",
-          },
-        });
-        return;
+          }
+        );
       }
 
       const forbiddenFields = ["_id", "createdAt", "password"];
@@ -56,40 +69,34 @@ export const UserController = {
       );
 
       if (invalidFields.length > 0) {
-        res.status(400).json({
-          errorType: "INVALID_FIELDS",
-          message: "No se pueden actualizar los siguientes campos",
-          details: {
+        throw new ApiError(
+          400,
+          "No se pueden actualizar los siguientes campos",
+          "INVALID_FIELDS",
+          {
             forbiddenFields: invalidFields,
-          },
-        });
-        return;
+          }
+        );
       }
 
       const user = await UserService.updateUserEmail(email, updateData);
 
       res.status(200).json(user);
-    } catch (error: any) {
-      let statusCode = 400;
-      let errorResponse = {
-        errorType: "UNKNOWN_ERROR",
-        message: error.message,
-        details: {},
-      };
-
-      if (error.message.includes("Usuario no encontrado")) {
-        statusCode = 404;
-        errorResponse.errorType = "USER_NOT_FOUND";
-        errorResponse.details = { email: req.params.email };
-      } else if (error.message.includes("duplicate key error")) {
-        errorResponse.errorType = "DUPLICATE_ENTRY";
-        errorResponse.message = "El email ya está en uso por otro usuario";
-      } else if (error.name === "ValidationError") {
-        errorResponse.errorType = "VALIDATION_ERROR";
-        errorResponse.details = error.errors;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          errorType: error.errorType,
+          message: error.message,
+          details: error.details,
+        });
+        return;
       }
 
-      res.status(statusCode).json(errorResponse);
+      res.status(500).json({
+        errorType: "SERVER_ERROR",
+        message: "Error al actualizar usuario",
+        details: (error as Error).message,
+      });
     }
   },
 
@@ -98,6 +105,7 @@ export const UserController = {
       email: req.params.email,
       password: req.body.password,
     });
+
     if (!parseResult.success) {
       res.status(400).json({
         errorType: "VALIDATION_ERROR",
@@ -106,32 +114,27 @@ export const UserController = {
       });
       return;
     }
+
     const { email, password } = parseResult.data;
 
     try {
       const result = await UserService.changePassword(email, password);
       res.status(200).json(result);
-      return;
-    } catch (error: any) {
-      let payload: any;
-      try {
-        payload = JSON.parse(error.message);
-      } catch {
-        res.status(500).json({
-          errorType: "SERVER_ERROR",
-          message: "Error interno al cambiar contraseña",
-          details: error.message,
+    } catch (error) {
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          errorType: error.errorType,
+          message: error.message,
+          details: error.details,
         });
         return;
       }
-      const statusCode =
-        payload.errorType === "USER_NOT_FOUND"
-          ? 404
-          : payload.errorType === "PASSWORD_SAME_AS_OLD"
-          ? 400
-          : 500;
-      res.status(statusCode).json(payload);
-      return;
+
+      res.status(500).json({
+        errorType: "SERVER_ERROR",
+        message: "Error interno al cambiar contraseña",
+        details: (error as Error).message,
+      });
     }
   },
 
@@ -141,27 +144,18 @@ export const UserController = {
       const { role } = req.body;
 
       if (!email || typeof email !== "string") {
-        res.status(400).json({
-          errorType: "VALIDATION_ERROR",
-          message: "Email inválido",
-          details: {
-            expected: "string",
-            received: email,
-          },
+        throw new ApiError(400, "Email inválido", "VALIDATION_ERROR", {
+          expected: "string",
+          received: email,
         });
-        return;
       }
 
       if (!role) {
-        res.status(400).json({
-          errorType: "MISSING_FIELD",
-          message: "El campo role es requerido",
-          details: {
-            requiredFields: ["role"],
-          },
+        throw new ApiError(400, "El campo role es requerido", "MISSING_FIELD", {
+          requiredFields: ["role"],
         });
-        return;
       }
+
       const user = await UserService.updateUserRole(email, role);
 
       res.status(200).json({
@@ -169,25 +163,21 @@ export const UserController = {
         data: user,
         message: "Rol de usuario actualizado correctamente",
       });
-      return;
-    } catch (error: any) {
-      let statusCode = 400;
-      let errorResponse;
-
-      try {
-        errorResponse = JSON.parse(error.message);
-        statusCode = errorResponse.errorType === "USER_NOT_FOUND" ? 404 : 400;
-      } catch (e) {
-        errorResponse = {
-          errorType: "SERVER_ERROR",
-          message: "Error al actualizar el rol",
-          details: error.message,
-        };
-        statusCode = 500;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          errorType: error.errorType,
+          message: error.message,
+          details: error.details,
+        });
+        return;
       }
 
-      res.status(statusCode).json(errorResponse);
-      return;
+      res.status(500).json({
+        errorType: "SERVER_ERROR",
+        message: "Error al actualizar el rol",
+        details: (error as Error).message,
+      });
     }
   },
 
@@ -197,15 +187,10 @@ export const UserController = {
       const requestingAdminEmail = req.user?.email;
 
       if (!email || typeof email !== "string") {
-        res.status(400).json({
-          errorType: "VALIDATION_ERROR",
-          message: "Email inválido",
-          details: {
-            expected: "string",
-            received: email,
-          },
+        throw new ApiError(400, "Email inválido", "VALIDATION_ERROR", {
+          expected: "string",
+          received: email,
         });
-        return;
       }
 
       const result = await UserService.deleteUser(email, requestingAdminEmail);
@@ -215,30 +200,21 @@ export const UserController = {
         data: result,
         message: "Usuario eliminado correctamente",
       });
-      return;
-    } catch (error: any) {
-      let statusCode = 400;
-      let errorResponse;
-
-      try {
-        errorResponse = JSON.parse(error.message);
-        statusCode =
-          errorResponse.errorType === "USER_NOT_FOUND"
-            ? 404
-            : errorResponse.errorType === "SELF_DELETION"
-            ? 403
-            : 400;
-      } catch (e) {
-        errorResponse = {
-          errorType: "SERVER_ERROR",
-          message: "Error al eliminar usuario",
-          details: error.message,
-        };
-        statusCode = 500;
+    } catch (error) {
+      if (error instanceof ApiError) {
+        res.status(error.statusCode).json({
+          errorType: error.errorType,
+          message: error.message,
+          details: error.details,
+        });
+        return;
       }
 
-      res.status(statusCode).json(errorResponse);
-      return;
+      res.status(500).json({
+        errorType: "SERVER_ERROR",
+        message: "Error al eliminar usuario",
+        details: (error as Error).message,
+      });
     }
   },
 };

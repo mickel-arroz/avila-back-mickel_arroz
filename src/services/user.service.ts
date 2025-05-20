@@ -1,5 +1,6 @@
 import { User } from "../models/user.model";
 import bcrypt from "bcryptjs";
+import { ApiError } from "../utils/apiError";
 
 export class UserService {
   static async updateUserEmail(email: string, updateData: object) {
@@ -10,43 +11,35 @@ export class UserService {
       .select("-password")
       .lean();
 
-    if (!user) throw new Error("Usuario no encontrado");
+    if (!user) {
+      throw new ApiError(404, "Usuario no encontrado", "USER_NOT_FOUND", {
+        email,
+      });
+    }
+
     return user;
   }
 
   static async updateUserRole(email: string, newRole: string) {
     if (!["user", "admin"].includes(newRole)) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "ROLE_VALIDATION",
-          message: "Rol inválido",
-          details: {
-            validRoles: ["user", "admin"],
-            received: newRole,
-          },
-        })
-      );
+      throw new ApiError(400, "Rol inválido", "ROLE_VALIDATION", {
+        validRoles: ["user", "admin"],
+        received: newRole,
+      });
     }
 
     const user = await User.findOneAndUpdate(
       { email },
       { role: newRole },
-      {
-        new: true,
-        runValidators: true,
-      }
+      { new: true, runValidators: true }
     )
       .select("-password")
       .lean();
 
     if (!user) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "USER_NOT_FOUND",
-          message: "Usuario no encontrado",
-          details: { email },
-        })
-      );
+      throw new ApiError(404, "Usuario no encontrado", "USER_NOT_FOUND", {
+        email,
+      });
     }
 
     return user;
@@ -54,23 +47,19 @@ export class UserService {
 
   static async changePassword(targetEmail: string, newPassword: string) {
     const user = await User.findOne({ email: targetEmail }).select("+password");
+
     if (!user) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "USER_NOT_FOUND",
-          message: "Usuario no encontrado",
-          details: { email: targetEmail },
-        })
-      );
+      throw new ApiError(404, "Usuario no encontrado", "USER_NOT_FOUND", {
+        email: targetEmail,
+      });
     }
 
     const isSame = await bcrypt.compare(newPassword, user.password);
     if (isSame) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "PASSWORD_SAME_AS_OLD",
-          message: "La nueva contraseña no puede ser igual a la actual",
-        })
+      throw new ApiError(
+        400,
+        "La nueva contraseña no puede ser igual a la actual",
+        "PASSWORD_SAME_AS_OLD"
       );
     }
 
@@ -85,27 +74,22 @@ export class UserService {
 
   static async deleteUser(email: string, requestingAdminEmail: string) {
     if (email === requestingAdminEmail) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "SELF_DELETION",
-          message: "No puedes eliminarte a ti mismo",
-          details: {
-            email: requestingAdminEmail,
-          },
-        })
+      throw new ApiError(
+        403,
+        "No puedes eliminarte a ti mismo",
+        "SELF_DELETION",
+        {
+          email,
+        }
       );
     }
 
     const deletedUser = await User.findOneAndDelete({ email }).lean();
 
     if (!deletedUser) {
-      throw new Error(
-        JSON.stringify({
-          errorType: "USER_NOT_FOUND",
-          message: "Usuario no encontrado",
-          details: { email },
-        })
-      );
+      throw new ApiError(404, "Usuario no encontrado", "USER_NOT_FOUND", {
+        email,
+      });
     }
 
     return {

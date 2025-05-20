@@ -1,4 +1,4 @@
-import express from "express";
+import express, { ErrorRequestHandler } from "express";
 import "dotenv/config";
 import cors from "cors";
 import cookieParser from "cookie-parser";
@@ -9,6 +9,8 @@ import authRoutes from "./routes/auth.routes";
 import userRoutes from "./routes/user.routes";
 import productRoutes from "./routes/product.routes";
 import ordersRoutes from "./routes/order.routes";
+
+import { errorHandler } from "./middlewares/errorHandler";
 
 import swaggerUi from "swagger-ui-express";
 import swaggerSpec from "./swagger/swagger";
@@ -38,5 +40,8 @@ app.use("/api/docs", swaggerUi.serve, swaggerUi.setup(swaggerSpec));
 app.use((req, res, next) => {
   res.status(404).json({ error: "Ruta no encontrada" });
 });
+
+// Middleware de Gestion de Errores
+app.use(errorHandler as ErrorRequestHandler);
 
 export default app;
